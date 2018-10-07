@@ -1,9 +1,9 @@
 import pandas as pd
-import recsys.preprocessing.books
+from recsys.preprocessing import books as books
 
 
 def load_books_categories():
-    return pd.read_json('data/books_categories.json')
+    return pd.read_json('../data/books_categories.json')
 
 
 def binarize_books_categories():
@@ -15,5 +15,5 @@ def binarize_books_categories():
 
 
 def merge_books_with_categories():
-    books = recsys.preprocessing.books.load_cleaned_df()
-    return books.merge(binarize_books_categories(), left_on='ISBN', right_on='ISBN', how='inner')
+    books_df = books.load_cleaned_df()
+    return books_df.merge(binarize_books_categories(), left_on='ISBN', right_on='ISBN', how='inner')

@@ -104,6 +104,6 @@ venv.bak/
 .mypy_cache/
 recsys/data/
 .idea/
-RecSys_Book_Crossing_Playground.ipynb
+recsys/notebooks/RecSys_Book_Crossing_Playground.ipynb
 .DS_Store
 recsys/categories_scraper/crawls/
