@@ -26,12 +26,13 @@ def separate_explicit_and_implicit_ratings():
     """Separate explicit and implicit ratings for data exploration"""
     ratings_new = match_uid_and_isbn()
     ratings_explicit = ratings_new[ratings_new['Book-Rating'] != 0]
-    return ratings_explicit
+    ratings_implicit = ratings_new[ratings_new['Book-Rating'] == 0]
+    return ratings_explicit, ratings_implicit
 
 
 def densify_ratings_df(user_ratings_threshold=50, book_ratings_threshold=100):
     """Densify counts of user and book ratings by condition"""
-    ratings_df = ratings.load_raw_df()
+    ratings_df = match_uid_and_isbn()
     user_ratings_counts = ratings_df['User-ID'].value_counts()
     user_ratings_densified = ratings_df[ratings_df['User-ID'].isin(user_ratings_counts[user_ratings_counts >=
                                                                                        user_ratings_threshold].index)]
@@ -41,8 +42,15 @@ def densify_ratings_df(user_ratings_threshold=50, book_ratings_threshold=100):
 
 
 def split_ratings_train_test(df):
-    """After splitting into train and test data choose extract method"""
+    """After splitting into train and test set choose extract method (densified ratings df or sample)"""
     reader = Reader(rating_scale=(1, 10))
     data = Dataset.load_from_df(df[['User-ID', 'ISBN', 'Book-Rating']], reader)
     train_set, test_set = train_test_split(data, test_size=0.25, random_state=1)
     return train_set, test_set
+
+
+def load_full_ratings_train_set(df):
+    """After loading full train set choose extract method (densified ratings df or sample)"""
+    reader = Reader(rating_scale=(1, 10))
+    data = Dataset.load_from_df(df[['User-ID', 'ISBN', 'Book-Rating']], reader)
+    return data.build_full_trainset()
