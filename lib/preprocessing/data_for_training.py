@@ -41,7 +41,7 @@ def densify_ratings_df(user_ratings_threshold=50, book_ratings_threshold=100):
                                                                                           book_ratings_threshold].index)]
 
 
-def split_ratings_train_test(df):
+def load_split_ratings_train_test(df):
     """After splitting into train and test set choose extract method (densified ratings df or sample)"""
     reader = Reader(rating_scale=(1, 10))
     data = Dataset.load_from_df(df[['User-ID', 'ISBN', 'Book-Rating']], reader)

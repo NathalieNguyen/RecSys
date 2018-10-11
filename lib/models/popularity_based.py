@@ -4,6 +4,7 @@ import pandas as pd
 
 
 def build_popularity_based_recommendations():
+    """Build popularity-based recommendations through summing up the rating counts per ISBN"""
     ratings_explicit, ratings_implicit = data.separate_explicit_and_implicit_ratings()
     ratings_count = pd.DataFrame(ratings_explicit.groupby(['ISBN'])['Book-Rating'].sum())
     top10 = ratings_count.sort_values('Book-Rating', ascending=False).head(10)
