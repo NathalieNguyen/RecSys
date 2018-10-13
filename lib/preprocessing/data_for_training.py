@@ -30,16 +30,13 @@ def separate_explicit_and_implicit_ratings():
     return ratings_explicit, ratings_implicit
 
 
-def filter_ratings_above_count_threshold():
+def filter_ratings_above_count_threshold(sample=20000):
+    ratings_new = match_uid_and_isbn()
+
     ratings_explicit, _ = separate_explicit_and_implicit_ratings()
-    grouped = ratings_explicit.groupby('User-ID').count().reset_index()
-    filtered = grouped[grouped['Book-Rating'] > 2]
-    return filtered.rename(index=str, columns={"ISBN": "ISBN count", "Book-Rating": "Book-Rating count"})
-
-
-
-
-
+    grouped = ratings_explicit.groupby('User-ID').count().reset_index().sample(n=sample)
+    filtered = grouped[grouped['Book-Rating'] > 2].rename(index=str, columns={"ISBN": "ISBN count", "Book-Rating": "Book-Rating count"})
+    return ratings_new[ratings_new['User-ID'].isin(filtered['User-ID'])]
 
 # def densify_ratings_df(user_ratings_threshold=50, book_ratings_threshold=100):
 #     """Densify counts of user and book ratings by condition"""
