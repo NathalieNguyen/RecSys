@@ -2,8 +2,7 @@ from lib.preprocessing import data_for_training as data
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from scipy.sparse.linalg import svds
-from scipy.sparse import csr_matrix
+from sklearn.decomposition import NMF
 from sklearn.metrics import mean_squared_error
 from math import sqrt
 
@@ -25,12 +24,11 @@ if __name__ == '__main__':
                                                             values='Book-Rating').fillna(mean_rating)
 
     R_pivot = ratings_pivot.values
-    sparse_R = csr_matrix(R_pivot, dtype=float)
 
-    U, sigma, Vt = svds(sparse_R, k=20)
-    sigma = np.diag(sigma)
-
-    all_user_predicted_ratings = np.dot(U, np.dot(sigma, Vt))
+    model = NMF(n_components=20, init='random', random_state=0)
+    W = model.fit_transform(R_pivot)
+    H = model.components_
+    all_user_predicted_ratings = np.dot(W, H)
 
     RMSE_full_set = sqrt(mean_squared_error(R_pivot, all_user_predicted_ratings))
     print('RMSE full set: ', RMSE_full_set)

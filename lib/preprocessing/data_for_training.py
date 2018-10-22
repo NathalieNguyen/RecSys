@@ -2,9 +2,9 @@ from lib.preprocessing import books as books
 from lib.preprocessing import users as users
 from lib.preprocessing import ratings as ratings
 from lib.features import categories as categories
-from surprise import Dataset
-from surprise import Reader
-from surprise.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
+import pandas as pd
+import numpy as np
 
 
 def compute_genres_matrix():
@@ -25,40 +25,46 @@ def match_uid_and_isbn():
 def separate_explicit_and_implicit_ratings():
     """Separate explicit and implicit ratings for data exploration"""
     ratings_new = match_uid_and_isbn()
-    ratings_explicit = ratings_new[ratings_new['Book-Rating'] != 0]
+    ratings_explicit = ratings_new[ratings_new['Book-Rating'] > 0]
     ratings_implicit = ratings_new[ratings_new['Book-Rating'] == 0]
     return ratings_explicit, ratings_implicit
 
 
-def filter_ratings_above_count_threshold(sample=20000):
+def filter_ratings_above_count_threshold(frac=1):
+    """Filter users with explicit ratings count above threshold and take a fraction for training the models"""
     ratings_new = match_uid_and_isbn()
-
-    ratings_explicit, _ = separate_explicit_and_implicit_ratings()
-    grouped = ratings_explicit.groupby('User-ID').count().reset_index().sample(n=sample)
-    filtered = grouped[grouped['Book-Rating'] > 2].rename(index=str, columns={"ISBN": "ISBN count", "Book-Rating": "Book-Rating count"})
-    return ratings_new[ratings_new['User-ID'].isin(filtered['User-ID'])]
-
-# def densify_ratings_df(user_ratings_threshold=50, book_ratings_threshold=100):
-#     """Densify counts of user and book ratings by condition"""
-#     ratings_df = match_uid_and_isbn()
-#     user_ratings_counts = ratings_df['User-ID'].value_counts()
-#     user_ratings_densified = ratings_df[ratings_df['User-ID'].isin(user_ratings_counts[user_ratings_counts >=
-#                                                                                        user_ratings_threshold].index)]
-#     book_ratings_counts = ratings_df['ISBN'].value_counts()
-#     return user_ratings_densified[user_ratings_densified['ISBN'].isin(book_ratings_counts[book_ratings_counts >=
-#                                                                                           book_ratings_threshold].index)]
+    ratings_explicit = ratings_new[ratings_new['Book-Rating'] > 0]
+    grouped = ratings_explicit.groupby('User-ID').count().reset_index().sample(frac=frac)
+    filtered = grouped[grouped['Book-Rating'] >= 2].rename(index=str, columns={'ISBN': 'ISBN count',
+                                                                               'Book-Rating': 'Book-Rating count'})
+    ratings_above_count_threshold = ratings_explicit[ratings_explicit['User-ID'].isin(filtered['User-ID'])]
+    return ratings_above_count_threshold
 
 
-# def load_split_ratings_train_test(df):
-#     """After splitting into train and test set choose extract method (densified ratings df or sample)"""
-#     reader = Reader(rating_scale=(1, 10))
-#     data = Dataset.load_from_df(df[['User-ID', 'ISBN', 'Book-Rating']], reader)
-#     train_set, test_set = train_test_split(data, test_size=0.25, random_state=1)
-#     return train_set, test_set
-#
-#
-# def load_full_ratings_train_set(df):
-#     """After loading full train set choose extract method (densified ratings df or sample)"""
-#     reader = Reader(rating_scale=(1, 10))
-#     data = Dataset.load_from_df(df[['User-ID', 'ISBN', 'Book-Rating']], reader)
-#     return data.build_full_trainset()
+def filter_ratings_below_count_threshold():
+    """Filter users with explicit ratings count below threshold for training content-based model"""
+    ratings_new = match_uid_and_isbn()
+    ratings_above_threshold = filter_ratings_above_count_threshold(frac=1)
+    return ratings_new[~ratings_new['User-ID'].isin(ratings_above_threshold['User-ID'])]
+
+
+def build_train_test():
+    """Build train test data based on ratings above count threshold"""
+    ratings_above_count_threshold_df = filter_ratings_above_count_threshold().sample(frac=0.1)
+    train_set, test_set = train_test_split(ratings_above_count_threshold_df, test_size=0.1,
+                                           stratify=ratings_above_count_threshold_df['User-ID'])
+    return train_set, test_set
+
+
+def build_full_set_with_hidden_ratings():
+    """Build full set with hidden ratings from the defined test set"""
+    train_set, test_set = build_train_test()
+    test_set_without_ratings = test_set.copy()
+    test_set_without_ratings['Book-Rating'] = np.nan
+    return pd.concat([train_set, test_set_without_ratings])
+
+
+def build_ratings_pivot_with_fillna_mean():
+    """Build ratings pivot and fill nan with mean"""
+    pass
+
