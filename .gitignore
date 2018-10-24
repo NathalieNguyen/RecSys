@@ -104,10 +104,7 @@ venv.bak/
 .mypy_cache/
 lib/data/
 .idea/
-RecSys_Book_Crossing_Playground.ipynb
-RecSys_Book_Crossing_Playground_Content_Based.ipynb
-RecSys_Book_Crossing_Playground_Matrix_Factorization_SVD.ipynb
-RecSys_Book_Crossing_Playground_KNN.ipynb
+RecSys_Book_Crossing_Playground*.ipynb
 .DS_Store
 lib/categories_scraper/crawls/
 ISBN.csv
