@@ -1,6 +1,5 @@
 from lib.preprocessing import data_for_training as data
 from lib.evaluation import recommendations as recs
-from lib.models import popularity_based as popular
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csc_matrix
 import numpy as np
@@ -10,25 +9,15 @@ import pandas as pd
 if __name__ == '__main__':
     np.random.seed(0)
 
-    genre_matrix = data.compute_genres_matrix()
+    # load ratings below count threshold
     below_count = data.filter_ratings_below_count_threshold()
+    explicit_ratings_above_6 = below_count[below_count['Book-Rating'] > 6]
 
-    isbn_book_dict = recs.map_isbn_to_names()
-
+    # create genre matrix for computing similarity between items
+    genre_matrix = data.compute_genres_matrix()
     genre_matrix_without_ISBN = genre_matrix.drop('ISBN', axis=1)
     genre_sparse_matrix = csc_matrix(genre_matrix_without_ISBN)
 
-    explicit_ratings_above_6 = below_count[below_count['Book-Rating'] > 6]
-    implicit_ratings_or_below_7 = below_count[below_count['Book-Rating'] < 7]
-
-    for index, row in implicit_ratings_or_below_7.sample(n=10).iterrows():
-        popular_books = popular.build_popularity_based_recommendations()
-        popular_books = popular_books.index + 1
-        user_id = row['User-ID']
-        print('Popularity-based recommendations for user {0}'.format(user_id))
-        print('Top {0}: {1}'.format(popular_books.index, popular_books['Book-Title']))
-
-"""
     for index, row in explicit_ratings_above_6.sample(n=10).iterrows():
         user_id = row['User-ID']
         isbn = row['ISBN']
@@ -53,10 +42,10 @@ if __name__ == '__main__':
         results_df.set_axis(genre_matrix['ISBN'], inplace=True)
         top_n_results = results_df.sort_values(by=isbn, ascending=False).reset_index().truncate(after=4)
 
-        # show nice formatting for recommendations
+        # making recommendations
+        isbn_book_dict = recs.map_isbn_to_names()
+
         for rec_index, rec_row in top_n_results.iterrows():
             rec_isbn = rec_row['ISBN']
             rec_book_name = isbn_book_dict[rec_isbn]
-            print('Top {0} ISBN: {1}, {2} with a score of {3}'.format(rec_index + 1, rec_isbn, rec_book_name,
-                                                                      rec_row[isbn]))
-"""
+            print('Top {0} ISBN: {1}, {2}'.format(rec_index + 1, rec_isbn, rec_book_name))
