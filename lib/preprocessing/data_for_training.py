@@ -64,7 +64,12 @@ def build_full_set_with_hidden_ratings():
     return pd.concat([train_set, test_set_without_ratings])
 
 
-def build_ratings_pivot_with_fillna_mean():
-    """Build ratings pivot and fill nan with mean"""
-    pass
-
+def densify_ratings_df(user_ratings_count_threshold=20, isbn_ratings_count_threshold=100, frac=1):
+    """Densify ratings df through thresholds for both user ratings count and item ratings count"""
+    ratings_explicit, _ = separate_explicit_and_implicit_ratings()
+    user_with_threshold = ratings_explicit.groupby('User-ID').count().sample(frac=frac)
+    user_with_threshold = user_with_threshold[user_with_threshold['Book-Rating'] >= user_ratings_count_threshold].index
+    isbn_with_threshold = ratings_explicit.groupby('ISBN').count()
+    isbn_with_threshold = isbn_with_threshold[isbn_with_threshold['Book-Rating'] >= isbn_ratings_count_threshold].index
+    ratings_above_user_count_threshold = ratings_explicit[ratings_explicit['User-ID'].isin(user_with_threshold)]
+    return ratings_above_user_count_threshold[ratings_above_user_count_threshold['ISBN'].isin(isbn_with_threshold)]
