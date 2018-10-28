@@ -13,16 +13,9 @@ In the following the main data sources for this project are listed. The book gen
 
 ## Requirements & Installation
 
-The following modules are required for running the code that is written in Python. You can install the modules via pip or conda package manager. For installation follow the instructions provided under the respective links.
+The required modules can be installed via the following command:
 
-pandas<br>
-NumPy<br>
-[scikit-learn](http://scikit-learn.org/stable/install.html)<br>
-SciPy<br>
-matplotlib<br>
-IPython<br>
-Jupyter<br>
+```pip install -r requirements.txt```
+
+For installing PyTorch follow the instructions under the link below.<br>
 [PyTorch](https://pytorch.org/get-started/locally/)
-
-For installing the key packages in one step you need to have Python and pip already installed on your system.<br>
-[Installing key packages](https://scipy.org/install.html)
