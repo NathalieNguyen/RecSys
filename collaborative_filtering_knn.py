@@ -38,7 +38,7 @@ if __name__ == '__main__':
             ratings_for_knn = pd.concat([ratings_by_user, ratings_by_other_users]).drop_duplicates()
             ratings_pivot = ratings_for_knn.pivot(index='User-ID', columns='ISBN', values='Book-Rating').fillna(0)
 
-            item_knn = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=min(users_for_knn.count(), 5))
+            item_knn = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=min(users_for_knn.count(), 20))
             item_knn.fit(ratings_pivot)
             distances, indices = item_knn.kneighbors(ratings_pivot.loc[user_id, :].values.reshape(1, -1))
 

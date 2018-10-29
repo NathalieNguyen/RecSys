@@ -13,12 +13,12 @@ if __name__ == '__main__':
     np.random.seed(0)
 
     # load ratings above count threshold
-    ratings_above_count_threshold_df = data.densify_ratings_df(user_ratings_count_threshold=2,
-                                                               isbn_ratings_count_threshold=0, frac=0.1)
+    ratings_above_count_threshold_df = data.densify_ratings_df(user_ratings_count_threshold=50,
+                                                               isbn_ratings_count_threshold=200)
 
-    # create test set and fill nan with mean
-    train_set, test_set = train_test_split(ratings_above_count_threshold_df, test_size=0.1,
-                                           stratify=ratings_above_count_threshold_df['User-ID'])
+    # create test set and copy of original ratings
+    train_set, test_set = train_test_split(ratings_above_count_threshold_df, test_size=0.1)
+    ratings_copy = train_set.copy()
 
     mean_rating = ratings_above_count_threshold_df['Book-Rating'].mean()
 
@@ -66,8 +66,8 @@ if __name__ == '__main__':
         actual_ratings.append(row['Book-Rating'])
         predicted_ratings.append(all_user_predicted_ratings_df.at[row['User-ID'], row['ISBN']])
 
-    RMSE_full_set = sqrt(mean_squared_error(R_pivot, all_user_predicted_ratings))
-    print('RMSE full set: ', RMSE_full_set)
+    RMSE_train_set = sqrt(mean_squared_error(R_pivot, all_user_predicted_ratings))
+    print('RMSE train set: ', RMSE_train_set)
 
     RMSE_test_set = sqrt(mean_squared_error(actual_ratings, predicted_ratings))
     print('RMSE test set: ', RMSE_test_set)
