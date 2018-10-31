@@ -1,28 +1,84 @@
+import pandas as pd
+import numpy as np
 import torch
 import torch.nn as nn
+from lib.models import neural_network_structure as nns
+from lib.preprocessing import data_for_training as data
 
 
-class RecommenderNet(nn.Module):
+if __name__ == '__main__':
+    np.random.seed(0)
 
-    def __init__(self, n_users, n_items, n_factors, H1, D_out):
-        super(RecommenderNet, self).__init__()
-        # user and item embedding layers
-        self.user_factors = nn.Embedding(n_users, n_factors, sparse=True)
-        self.item_factors = nn.Embedding(n_items, n_factors, sparse=True)
-        # linear layers
-        self.linear1 = nn.Linear(n_factors * 2, H1)
-        self.linear2 = nn.Linear(H1, D_out)
+    # load ratings and take sample
+    ratings_new = data.match_uid_and_isbn()
+    ratings_sample = ratings_new.sample(n=10000)
+    n_ratings = len(ratings_sample)
 
-    def forward(self, users, items):
-        users_embedding = self.user_factors(users)
-        items_embedding = self.item_factors(items)
-        # concatenate user and item embeddings to form input
-        x = torch.cat([users_embedding, items_embedding], 1)
-        h1_relu = nn.ReLU(self.linear1(x))
-        output_scores = self.linear2(h1_relu)
-        return output_scores
+    # create user lookup
+    users_unique = ratings_sample['User-ID'].unique()
+    n_users = len(users_unique)
 
-    def predict(self, users, items):
-        # return the score
-        output_scores = self.forward(users, items)
-        return output_scores
+    user_df = pd.DataFrame(users_unique, columns=['user_id'])
+    user_df['idx'] = user_df.index
+    user_idx_lookup = user_df.set_index('user_id')
+
+    # create item lookup
+    items_unique = ratings_sample['ISBN'].unique()
+    n_items = len(items_unique)
+
+    items_df = pd.DataFrame(items_unique, columns=['isbn'])
+    items_df['idx'] = items_df.index
+    items_idx_lookup = items_df.set_index('isbn')
+
+    # transform sample data set with idx
+    ratings_sample_transformed = ratings_sample.copy()
+    ratings_sample_transformed.loc[:, "User-ID"] = ratings_sample["User-ID"].apply(lambda x: user_idx_lookup.loc[x, "idx"])
+    ratings_sample_transformed.loc[:, "ISBN"] = ratings_sample["ISBN"].apply(lambda x: items_idx_lookup.loc[x, "idx"])
+
+    rating_tensor = torch.Tensor(ratings_sample_transformed.values).long()
+
+    # neural network parameters
+    dtype = torch.long
+    device = torch.device('cpu')
+    batch_size = 100
+    learning_rate = 0.005
+
+    # instantiate neural network
+    model = nns.RecommenderNet(n_users, n_items, 1024, 128, 1)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    loss_hist = []
+
+    # Train
+    x_user_onehot = torch.FloatTensor(batch_size, n_users)
+    x_item_onehot = torch.FloatTensor(batch_size, n_items)
+
+    n_batches = int(n_ratings / batch_size)
+
+    for epoche in range(100):
+        for b in range(n_batches):
+            rating_batch = rating_tensor[b * batch_size: (b + 1) * batch_size]
+
+            x_user_onehot.zero_()
+            x_user_onehot.scatter_(1, rating_batch[:, 0].reshape(-1, 1), 1)
+
+            x_item_onehot.zero_()
+            x_item_onehot.scatter_(1, rating_batch[:, 1].reshape(-1, 1), 1)
+
+            y = rating_batch[:, 2].float().reshape(-1, 1)
+
+            # forward step
+            outputs = model.forward(x_user_onehot, x_item_onehot)
+
+            # compute loss
+            loss = criterion(outputs, y)
+
+            # backward propagation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # compute error
+        if epoche % 10 == 0:
+            loss_hist.append(loss.item())
+            print(epoche, loss.item())
